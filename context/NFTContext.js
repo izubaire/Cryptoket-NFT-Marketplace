@@ -6,8 +6,12 @@ import { create as ipfsHttpClient } from 'ipfs-http-client';
 
 import { MarketAddress, MarketAddressABI } from './constants';
 
-const client = ipfsHttpClient('https://ipfs.infura.io:5001/api/v0');
-const ALCHEMY_API_KEY = 'J3j597wRLgIrloRK1GEj3UhCdWZ7FsPI';
+const projectId = '2MjxabPDimKIfHNBFdiVIjLLBY8';
+const projectSecret = process.env.NEXT_PUBLIC_INFURA_SECRET_KEY;
+const auth = `Basic ${Buffer.from(`${projectId}:${projectSecret}`).toString('base64')}`;
+const options = { host: 'ipfs.infura.io', protocol: 'https', port: 5001, headers: { authorization: auth } };
+const client = ipfsHttpClient(options);
+const dedicatedEndPoint = 'https://zubaire.infura-ipfs.io';
 
 const fetchContract = (signerOrProvider) => new ethers.Contract(MarketAddress, MarketAddressABI, signerOrProvider);
 
@@ -49,7 +53,7 @@ export const NFTProvider = ({ children }) => {
     try{
       const added = await client.add({ content: file });
 
-      const url = `https://ipfs.infura.io/ipfs/${added.path}`;
+      const url = `${dedicatedEndPoint}/ipfs/${added.path}`;
       return url;
     } catch (error) {
       console.log(error);
@@ -67,7 +71,7 @@ export const NFTProvider = ({ children }) => {
     try{
       //upload image to ipfs
       const added = await client.add(data);
-      const url = `https://ipfs.infura.io/ipfs/${added.path}`;
+      const url = `${dedicatedEndPoint}/ipfs/${added.path}`;
 
       //create the sale transaction
       await createSale(url,price);
@@ -103,14 +107,16 @@ export const NFTProvider = ({ children }) => {
   const fetchNFTs = async () => {
     setIsLoadingNFT(false);
 
-    const provider = new ethers.providers.JsonRpcProvider(`https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`);  // fetch ALL nft on marketplace, not just the nft that belongs to you
+    const provider = new ethers.providers.JsonRpcProvider(`https://eth-goerli.alchemyapi.io/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`);  // fetch ALL nft on marketplace, not just the nft that belongs to you
     //const provider = new ethers.providers.AlchemyProvider('goerli',ALCHEMY_API_KEY);
     const contract = fetchContract(provider);
 
     const data = await contract.fetchMarketItems();
     
     const items = await Promise.all(data.map(async ({ tokenId, seller, owner, price: unformattedPrice})=>{
-      const tokenURI = await contract.tokenURI(tokenId);
+     
+      let tokenURI = await contract.tokenURI(tokenId);
+      tokenURI = tokenURI.replace('ipfs.infura.io','infura-ipfs.io')
       const { data: {image, name, description} } =  await axios.get(tokenURI); //get name, desc, price
       const price = ethers.utils.formatUnits(unformattedPrice.toString(), 'ether');
 
@@ -130,6 +136,7 @@ export const NFTProvider = ({ children }) => {
   }
 
   const fetchMyNFTsOrListedNFTs = async (type) => {
+    console.log('here')
     setIsLoadingNFT(false);
 
     const web3Modal = new Web3Modal();
@@ -145,6 +152,7 @@ export const NFTProvider = ({ children }) => {
     //format the data into readable form
     const items = await Promise.all(data.map(async ({ tokenId, seller, owner, price: unformattedPrice})=>{
       const tokenURI = await contract.tokenURI(tokenId);
+      console.log(tokenURI)
       const { data: {image, name, description} } =  await axios.get(tokenURI); //get name, desc, price
       const price = ethers.utils.formatUnits(unformattedPrice.toString(), 'ether');
 

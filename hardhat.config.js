@@ -1,8 +1,8 @@
-const fs = require('fs');
+require('dotenv').config();
 require("@nomiclabs/hardhat-waffle");
 
-const ALCHEMY_API_KEY = 'J3j597wRLgIrloRK1GEj3UhCdWZ7FsPI';
-const GOERLI_PRIVATE_KEY = fs.readFileSync('.secret').toString().trim();
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
+const GOERLI_PRIVATE_KEY = process.env.GOERLI_PRIVATE_KEY;
 
 module.exports = {
   networks: {
